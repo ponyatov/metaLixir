@@ -1,4 +1,4 @@
-File.write("#{dir}/lib/#{app|>String.downcase}.ex",~S|
+File.write("#{dir}/lib/#{app |> String.downcase()}.ex", ~S|
 
 defmodule M do
 

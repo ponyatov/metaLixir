@@ -1,18 +1,26 @@
 {
   "multiCommand.commands": [
-    {"command": "multiCommand.f11", "sequence":[
-      "workbench.action.files.saveAll",
-        {"command": "workbench.action.terminal.sendSequence",
-          "args": {"text": "\u000Diex -S mix\u000D"}}]},
-    {"command": "multiCommand.f12", "sequence":[
+    {"command": "multiCommand.f9", "sequence":[
       "workbench.action.files.saveAll",
         {"command": "workbench.action.terminal.sendSequence",
           "args": {"text": "\u000Delixir exs.exs\u000D"}}]},
+    {"command": "multiCommand.f11", "sequence":[
+      "workbench.action.files.saveAll",
+        {"command": "workbench.action.terminal.sendSequence",
+          "args": {"text": "\u000Dmake repl\u000D"}}]},
+    {"command": "multiCommand.f12", "sequence":[
+      "workbench.action.files.saveAll",
+        {"command": "workbench.action.terminal.sendSequence",
+          "args": {"text": "\u000DSystem.stop\u000D"}}]},
   ],
   "files.watcherExclude": {
     "**/.elixir_ls/**":true,
+    "**/_build/**":true,
+    "**/deps/**":true,
   },
   "files.exclude": {
     "**/.elixir_ls/**":true,
+    "**/_build/**":true,
+    "**/deps/**":true,
   },
 }

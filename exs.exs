@@ -12,6 +12,7 @@ src = "#{dir}/src"
 tmp = "#{dir}/tmp"
 
 appl = app|>String.downcase
+appc = app|>String.capitalize
 
 File.write("#{dir}/.formatter.exs", """
 [ inputs: [
@@ -26,6 +27,9 @@ File.write("#{dir}/mix.exs", """
 File.write("#{dir}/.gitignore", """
 *.beam
 /.elixir_ls/
+/_build/
+/deps/
+/mix.lock
 """)
 
 File.write("#{dir}/README.md", """
@@ -38,6 +42,10 @@ File.write("#{dir}/README.md", """
 (c) #{author} <<#{email}>> 2020 #{license}
 
 github: #{github}
+
+## Code Generation
+
+* [Code Generation in Elixir // Bryan Weber](https://www.youtube.com/watch?v=-mgwW3RVI50)
 """)
 
 File.mkdir("#{dir}/.vscode")
@@ -49,13 +57,16 @@ multiCommand = fn (key,command) ->
           "args": {"text": "\\u000D#{command}\\u000D"}}]},| end
 
 vs_exclude = ~S|
-    "**/.elixir_ls/**":true,|
+    "**/.elixir_ls/**":true,
+    "**/_build/**":true,
+    "**/deps/**":true,|
 
 File.write("#{dir}/.vscode/settings.json","""
 {
   "multiCommand.commands": [
-    #{multiCommand.("f11","iex -S mix")}
-    #{multiCommand.("f12","elixir exs.exs")}
+    #{multiCommand.("f9" ,"elixir exs.exs")}
+    #{multiCommand.("f11","make repl")}
+    #{multiCommand.("f12","System.stop")}
   ],
   "files.watcherExclude": {#{vs_exclude}
   },
@@ -66,8 +77,30 @@ File.write("#{dir}/.vscode/settings.json","""
 
 File.write("#{dir}/mix.exs","""
 defmodule M.MixProject do
-  @docmodule " #{app} "
   use Mix.Project
+
+  def project do
+    [
+      app:         :#{appl},
+      version:     "0.0.1",
+      description: "#{title}",
+      source_url:  \"#{github}\",
+      deps:        deps()
+    ]
+  end
+  def application do
+    [
+            applications: [:#{appl}],
+      extra_applications: [:logger,:cowboy]
+    ]
+  end
+  defp deps do
+    [
+      {:cowboy,       "~> 2.8"},
+      {:ecto,         "~> 2.0"},
+      {:sqlite_ecto2, "~> 2.4"},
+    ]
+  end
 end
 """)
 
@@ -91,6 +124,7 @@ ERL     = erl
 ERLC    = erlc
 ELIXIR  = elixir
 ELIXIRC = elixirc
+MIX     = mix
 IEX     = iex
 
 # targets
@@ -103,7 +137,11 @@ all: $(EX)
 
 .PHONY: repl
 repl:
+\t$(ELIXIR) exs.exs
+#\t$(MIX)    format
+\t$(MIX)    test
 \t$(IEX) -S mix
+\t$(MAKE)   $@
 
 # rules
 
@@ -112,10 +150,9 @@ $(LIB)/%.ex: $(LIB)/%.exs
 # install
 
 .PHONY: install update
-install:
+install update:
 \tmake $(OS)_install
-update:
-\tmake $(OS)_update
+\t$(MIX) deps.get
 .PHONY: Linux_install Linux_update
 Linux_install Linux_update:
 \tsudo apt update
@@ -124,7 +161,7 @@ Linux_install Linux_update:
 # git
 
 MERGE  = Makefile .gitignore README.md .vscode apt.txt
-MERGE += exs.exs mix.exs lib src
+MERGE += exs.exs mix.exs .formatter.exs lib src test
 
 master:
 	git checkout $@
@@ -139,7 +176,6 @@ release:
 	git tag $(NOW)-$(REL)
 	git push -v && git push -v --tags
 	$(MAKE) shadow
-
 """)
 
 File.write("#{dir}/apt.txt","""
@@ -165,15 +201,115 @@ File.mkdir(tmp)
 File.write("#{tmp}/.gitignore","*")
 
 File.mkdir(lib)
-File.write("#{dir}/lib/#{appl}.ex","""
-defmodule M do
+
+readme = ~S|
+  @readme   """
+            #  `#{@app}`
+            ## #{@title}
+
+            * automatic code generation
+            * homoiconic (meta)language for source code transformations
+
+            (c) #{@author()} <<#{@email}>> 2020 #{@license}
+
+            github: #{@github}
+
+            ## Code Generation
+
+            * [Code Generation in Elixir // Bryan Weber](https://www.youtube.com/watch?v=-mgwW3RVI50)
+            * [ElixirConf 2017 - Don't Write Macros But Do Learn How They Work - Jesse Anderson](https://www.youtube.com/watch?v=Bo48sQDb-hk)
+            """
+
+  def readme,  do: @readme
+|
+
+metainfo = ~s|
+defmodule M.MetaInfo do
+
   @app     "metaLixir"
   @title   "`metaL` circular implementation in Elixir/Erlang"
   @author  "Dmitry Ponyatov"
   @email   "dponyatov@gmail.com"
   @license "MIT"
-  @github  "https://github.com/ponyatov/#{app}"
+  @github  "https://github.com/ponyatov/\#{@app}"
+
+  def app,     do: @app
+  def title,   do: @title
+  def author,  do: @author
+  def email,   do: @email
+  def license, do: @license
+  def github,  do: @github
+
+  #{readme}
+end |
+
+object = ~S|
+defmodule M.Object do
+
+  defstruct type: :object, val: nil, nest: []
+
+end |
+
+File.write("#{dir}/lib/#{appl}.ex","""
+  #{metainfo}
+""")
+
+File.write("#{dir}/lib/object.ex",object)
+
+File.mkdir("#{dir}/test")
+File.write("#{dir}/test/test_helper.exs","""
+ExUnit.start()
+""")
+File.write("#{dir}/test/#{appl}_test.exs","""
+defmodule #{appc}Test do
+  use ExUnit.Case
 end
 """)
 
-# require M
+File.write("#{dir}/lib/web.ex",~s|
+defmodule #{appc}.Web.Handeler do
+end
+
+defmodule #{appc}.Web.Route do
+
+  def call(path,req), do: route(path,req)
+
+  def head, do: """
+  <HEAD>
+  </HEAD>
+  """
+
+  def style, do: """
+  <STYLE>
+  * { background: #222; color: lightgreen; }
+  </STYLE>
+  """
+
+  def route(path,req) do
+      """
+      \#\{head()\}
+      \#\{style()\}
+      <H1>no route to <\#\{path\}>"</H1>
+      <HR>
+      <PRE>
+      #\{req\}
+      </PRE>
+      """
+  end
+
+end |)
+
+File.write("#{dir}/lib/db.ex","""
+defmodule Repo do
+  use Ecto.Repo, otp_app: :#{appl}, adapter: Sqlite.Ecto2
+end
+""")
+
+File.mkdir("#{dir}/config")
+File.write("#{dir}/config/config.exs","""
+use Mix.Config
+
+config :#{app},Repo,
+  adapter: Sqlite.Ecto2,
+  database: "#{appl}.sqlite3"
+""")

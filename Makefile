@@ -17,6 +17,7 @@ ERL     = erl
 ERLC    = erlc
 ELIXIR  = elixir
 ELIXIRC = elixirc
+MIX     = mix
 IEX     = iex
 
 # targets
@@ -29,7 +30,11 @@ all: $(EX)
 
 .PHONY: repl
 repl:
+	$(ELIXIR) exs.exs
+#	$(MIX)    format
+	$(MIX)    test
 	$(IEX) -S mix
+	$(MAKE)   $@
 
 # rules
 
@@ -38,10 +43,9 @@ $(LIB)/%.ex: $(LIB)/%.exs
 # install
 
 .PHONY: install update
-install:
+install update:
 	make $(OS)_install
-update:
-	make $(OS)_update
+	$(MIX) deps.get
 .PHONY: Linux_install Linux_update
 Linux_install Linux_update:
 	sudo apt update
@@ -50,7 +54,7 @@ Linux_install Linux_update:
 # git
 
 MERGE  = Makefile .gitignore README.md .vscode apt.txt
-MERGE += exs.exs mix.exs lib src
+MERGE += exs.exs mix.exs .formatter.exs lib src test
 
 master:
 	git checkout $@
@@ -65,4 +69,3 @@ release:
 	git tag $(NOW)-$(REL)
 	git push -v && git push -v --tags
 	$(MAKE) shadow
-

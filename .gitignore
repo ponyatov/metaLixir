@@ -1,2 +1,9 @@
+*~
+*.swp
+*.log
+
 *.beam
 /.elixir_ls/
+/_build/
+/deps/
+/mix.lock
